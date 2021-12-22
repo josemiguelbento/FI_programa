@@ -5,7 +5,7 @@ import sys
 
 # Load the shape model. The first column lists whether the row is a vertex or face. The second,
 # third and fourth column list the coordiantes (vertex) and vertex indices (faces)
-COMET_67P_SHAPE_OBJ = pd.read_csv('data/hirestoutatis.OBJ', delim_whitespace=True, \
+COMET_67P_SHAPE_OBJ = pd.read_csv('../data/hirestoutatis.OBJ', delim_whitespace=True, \
                                   names=['TYPE', 'X1', 'X2', 'X3'])
 
 # Assign the vertices and faces
@@ -89,9 +89,22 @@ a2 = vv.subplot(132) # 1-linha, 3-colunas, pos-2; # abaixo disto vem tudo no 2 s
 vv.title('test')
 vv.mesh(vertices=VERTICES, faces=faces, verticesPerFace=3)
 axes = vv.gca()
-axes.axis.showGrid = False
-axes.axis.visible = False
-
+axes.axis.showGrid = True
+axes.axis.visible = True
+th = np.linspace(0, 2*np.pi, num=100)
+x0 = 2*np.cos(th)
+y0 = 2*np.sin(th)
+z0 = np.zeros(100)
+vv.plot(x0,y0,z0)
+ang = 30 * np.pi/180
+R = np.array([[np.cos(ang),0,-np.sin(ang)],
+              [0,1,0],
+              [np.sin(ang),0,np.cos(ang)]])
+M = R @ np.array([x0,y0,z0])
+x1 = M[0]
+y1 = M[1]
+z1 = M[2]
+vv.plot(x1,y1,z1, lc='r')
 a2.camera = a1.camera # mexe todas as figuras em simultaneo
 
 # Draw figure
