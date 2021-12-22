@@ -1,0 +1,15 @@
+.DS_Store
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+_kernels/_misc/codes_300ast_20100725.tf
+_kernels/spk/codes_300ast_20100725.bsp
+*.pyc
+part7/raw_data/cometels.json.gz
+*.gif
+*.png
+*.OBJ
+part16/magnitude_lookup_table.xlsx
