@@ -26,6 +26,9 @@ def visualize(l,m):
 
     P_ml = sym.lambdify(s, P_ml)
     Y_ml = a * np.exp(1j * m * PHI) * P_ml(np.cos(THETA))
+
+    Y_ml = np.where(np.isnan(Y_ml), 0, Y_ml)
+
     Y_ml_real = Y_ml.real
     Y_ml_imag = Y_ml.imag
     Y_ml_abs = np.abs(Y_ml)
@@ -127,6 +130,6 @@ def visualize(l,m):
 
 
 if __name__ == "__main__":
-    l = 4
-    m = 2
+    l = 3
+    m = 1
     visualize(l,m)

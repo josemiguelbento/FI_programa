@@ -26,6 +26,9 @@ def visualize(l,m):
 
     P_ml = sym.lambdify(s, P_ml)
     Y_ml = a * np.exp(1j * m * PHI) * P_ml(np.cos(THETA))
+    
+    Y_ml = np.where(np.isnan(Y_ml), 0, Y_ml)
+    
     Y_ml_real = Y_ml.real
     Y_ml_imag = Y_ml.imag
     Y_ml_abs = np.abs(Y_ml)
@@ -86,8 +89,6 @@ def draw_coeff(coeff):
     R = PHI * 0
     for l in range(len(coeff)-1):
         for m in range(-l,l):
-            print(l)
-            print(m)
             R = R + coeff[l][m+l] * get_spherical_harmonic(l, m, PHI, THETA)
 
     visualize_final(R, THETA, PHI)
@@ -106,11 +107,16 @@ def get_spherical_harmonic(l, m, PHI, THETA):
     P_ml = ((-1) ** m / (math.factorial(l) * (2 ** l))) * H * sym.diff(G, s, m + l)
 
     P_ml = sym.lambdify(s, P_ml)
+    
+
     Y_ml = a * np.exp(1j * m * PHI) * P_ml(np.cos(THETA))
 
     return Y_ml
 
 def visualize_final(R, THETA, PHI):
+    
+    R = np.where(np.isnan(R), 0, R)
+
     Y_ml_real = R.real
     Y_ml_imag = R.imag
     Y_ml_abs = np.abs(R)
@@ -163,7 +169,7 @@ def visualize_final(R, THETA, PHI):
 
 if __name__ == "__main__":
     l = 3
-    m = 0
+    m = 1
     coeff = [[0.37],
              [0.020, 0.052, 0.020],
              [0.068, 0.012, 0.012, 0.012, 0.068],
