@@ -5,8 +5,8 @@ theta=linspace(0,pi,n);
 
 [PHI, THETA]=meshgrid(phi,theta);
 
-l=2;
-m=1;
+l=3;
+m=-1;
 
 a=sqrt(((2*l+1)/(4*pi))*(((factorial(l-m))/(factorial(l+m)))));
 syms s;

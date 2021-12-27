@@ -146,6 +146,6 @@ def visualize(l,m):
 
 
 if __name__ == "__main__":
-    l = 10
-    m = 5
+    l = 3
+    m = -1
     visualize(l,m)
