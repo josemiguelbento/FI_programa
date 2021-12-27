@@ -1,17 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout
-import visvis as vv
 from mayavi import mlab
-
-class MainWindow(QWidget):
-    def __init__(self, *args):
-        QWidget.__init__(self, *args)
-        self.fig = vv.backends.backend_pyqt5.Figure(self)
-        layout = QHBoxLayout(self)
-        layout.addWidget(self.fig._widget)
-        self.setLayout(layout)
-        self.setWindowTitle('Boas')
-        self.show()
-
+from mayavi.core.ui.api import MayaviScene, MlabSceneModel, SceneEditor
 
 def visualize(l,m):
 
@@ -73,42 +61,91 @@ def visualize(l,m):
     y3 = Y_ml_abs * np.sin(THETA) * np.sin(PHI)
     z3 = Y_ml_abs * np.cos(THETA)
 
+    #############################
+    scale = 3
+
+    dx31 = scale*x3.max() - scale*x1.min() + 1
+    d = x.max() - x.min() + 1
+    if d > dx31:
+        dx31 = d
+    d = x33.max() - x11.min() + 1
+    if d > dx31:
+        dx31 = d
+    
+    dx12 = scale*x1.max() - scale*x2.min() + 1
+    d = x.max() - x.min() + 1
+    if d > dx12:
+        dx12 = d
+    d = x11.max() - x22.min() + 1
+    if d > dx12:
+        dx12 = d
+    
+    dz1 = -scale*z3.min() + z.max() + 2
+    d = -scale*z1.min() + z.max() + 2
+    if d > dz1:
+        dz1 = d
+    d = -scale*z2.min() + z.max() + 2
+    if d > dz1:
+        dz1 = d
+    
+    dz2 = -z.min() + z33.max() + 2
+    d = -z.min() + z11.max() + 2
+    if d > dz2:
+        dz2 = d
+    d = -z.min() + z22.max() + 2
+    if d > dz2:
+        dz2 = d
+    
+    ##############################
+
     mlab.figure(1, bgcolor=(1, 1, 1), size=(1000, 900))
     mlab.clf()
 
-    mlab.mesh(x3*3.5, y3*3.5, z3*3.5, scalars=Y_ml_abs, colormap='jet')
+    mlab.mesh(x3*scale, y3*scale, z3*scale, scalars=Y_ml_abs, colormap='jet')
+    #mlab.text3d(-0.4, 0, 1.8, f'|Y{l}{m}|', scale=(0.2, 0.2, 0.2), color=(0,0,0))
     #mlab.colorbar(orientation='vertical')
 
-    mlab.mesh((x1*3.5+4), y1*3.5, z1*3.5, scalars=Y_ml_real, colormap='jet')
+    mlab.mesh((x1*scale+dx31), y1*scale, z1*scale, scalars=Y_ml_real, colormap='jet')
+    #mlab.text3d(-0.4+3.8, 0, 1.8, f'Re[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x2*3.5+8, y2*3.5, z2*3.5, scalars=Y_ml_imag, colormap='jet')
+    mlab.mesh(x2*scale+dx31+dx12, y2*scale, z2*scale, scalars=Y_ml_imag, colormap='jet')
+    #mlab.text3d(7.4, 0, 1.8, f'Im[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x, y, z-4, scalars=Y_ml_abs, colormap='jet')
+    mlab.mesh(x, y, z-dz1, scalars=Y_ml_abs, colormap='jet')
+    #mlab.text3d(-0.4, 0, 1.8-4, f'|Y{l}{m}|', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x+4, y, z-4, scalars=Y_ml_real, colormap='jet')
+    mlab.mesh(x+dx31, y, z-dz1, scalars=Y_ml_real, colormap='jet')
+    #mlab.text3d(-0.4+3.8, 0, 1.8-4, f'Re[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x+8, y, z-4, scalars=Y_ml_imag, colormap='jet')
+    if m != 0:
+        mlab.mesh(x+dx31+dx12, y, z-dz1, scalars=Y_ml_imag, colormap='jet')
+    #mlab.text3d(7.4, 0, 1.8-4, f'Im[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x33, y33, z33-8, scalars=Y_ml_abs, colormap='jet')
+    mlab.mesh(x33, y33, z33-dz1-dz2, scalars=Y_ml_abs, colormap='jet')
+    #mlab.text3d(-0.6, 0, 1.8-8, f'1+|Y{l}{m}|', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x11+4, y11, z11-8, scalars=Y_ml_real, colormap='jet')
+    mlab.mesh(x11+dx31, y11, z11-dz1-dz2, scalars=Y_ml_real, colormap='jet')
+    #mlab.text3d(-0.4+3.4, 0, 1.8-8, f'1+Re[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
+    
+    if m != 0:
+        mlab.mesh(x22+dx31+dx12, y22, z22-dz1-dz2, scalars=Y_ml_imag, colormap='jet')
+    #mlab.text3d(7.2, 0, 1.8-8, f'1+Im[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x22+8, y22, z22-8, scalars=Y_ml_imag, colormap='jet')
+    mlab.text3d(-0.2, 0, scale*z3.max()+1, 'Abs', scale=(0.2, 0.2, 0.2), color=(0,0,0))
+    mlab.text3d(-0.2+dx31, 0, scale*z3.max()+1, 'Re', scale=(0.2, 0.2, 0.2), color=(0,0,0))
+    mlab.text3d(-0.2+dx31+dx12, 0, scale*z3.max()+1, 'Im', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    #mlab.text3d(0, 0, 4, 'text', scale=(1, 1, 1), color=(0,0,0))
+    mlab.text3d(scale*x3.min()-2.5, 0, 0, 'R=Ylm', scale=(0.2, 0.2, 0.2), color=(0,0,0))
+    mlab.text3d(scale*x3.min()-2.5, 0, -dz1, 'Unit Sphere', scale=(0.2, 0.2, 0.2), color=(0,0,0))
+    mlab.text3d(scale*x3.min()-2.5, 0, -dz1-dz2, 'R=(1+Ylm)', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-
-
-
-    mlab.view(-85,90,25)
+    mlab.view(-85,85,30)
     mlab.show()
 
 
 
 
-
-
 if __name__ == "__main__":
-    l = 4
-    m = 2
+    l = 10
+    m = 5
     visualize(l,m)
