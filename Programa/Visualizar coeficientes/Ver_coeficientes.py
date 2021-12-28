@@ -11,40 +11,36 @@ def visualize(l,m):
     n = 200
     phi = np.linspace(0, 2 * np.pi, n)
     theta = np.linspace(0, np.pi, n)
-
     [PHI, THETA] = np.meshgrid(phi, theta)
 
-
-    a = np.sqrt(((2 * l + 1) / (4 * np.pi)) * (((math.factorial(l - m)) / (math.factorial(l + m)))))
+    a = np.sqrt(((2 * l + 1) / (4 * np.pi)) * (((math.factorial(l - abs(m))) / (math.factorial(l + abs(m))))))
 
     s = sym.Symbol('s')
 
     G = (s ** 2 - 1) ** l
 
-    H = (1 - s ** 2) ** (m / 2)
-    P_ml = ((-1) ** m / (math.factorial(l) * (2 ** l))) * H * sym.diff(G, s, m + l)
+    H = (1 - s ** 2) ** (abs(m) / 2)
+    P_lm = ((-1) ** abs(m) / (math.factorial(l) * (2 ** l))) * H * sym.diff(G, s, abs(m) + l)
 
-    P_ml = sym.lambdify(s, P_ml)
-    Y_ml = a * np.exp(1j * m * PHI) * P_ml(np.cos(THETA))
-    
-    Y_ml = np.where(np.isnan(Y_ml), 0, Y_ml)
-    
-    Y_ml_real = Y_ml.real
-    Y_ml_imag = Y_ml.imag
-    Y_ml_abs = np.abs(Y_ml)
+    P_lm = sym.lambdify(s, P_lm)
+    Y_lm = a * np.exp(1j * abs(m) * PHI) * P_lm(np.cos(THETA))
+    if m<0: Y_lm = (-1)**m * Y_lm.conj()
+    Y_lm_real = Y_lm.real
+    Y_lm_imag = Y_lm.imag
+    Y_lm_abs = np.abs(Y_lm)
 
 
-    x1 = abs(Y_ml_real) * np.sin(THETA) * np.cos(PHI)
-    y1 = abs(Y_ml_real) * np.sin(THETA) * np.sin(PHI)
-    z1 = abs(Y_ml_real) * np.cos(THETA)
+    x1 = abs(Y_lm_real) * np.sin(THETA) * np.cos(PHI)
+    y1 = abs(Y_lm_real) * np.sin(THETA) * np.sin(PHI)
+    z1 = abs(Y_lm_real) * np.cos(THETA)
 
-    x2 = abs(Y_ml_imag) * np.sin(THETA) * np.cos(PHI)
-    y2 = abs(Y_ml_imag) * np.sin(THETA) * np.sin(PHI)
-    z2 = abs(Y_ml_imag) * np.cos(THETA)
+    x2 = abs(Y_lm_imag) * np.sin(THETA) * np.cos(PHI)
+    y2 = abs(Y_lm_imag) * np.sin(THETA) * np.sin(PHI)
+    z2 = abs(Y_lm_imag) * np.cos(THETA)
 
-    x3 = Y_ml_abs * np.sin(THETA) * np.cos(PHI)
-    y3 = Y_ml_abs * np.sin(THETA) * np.sin(PHI)
-    z3 = Y_ml_abs * np.cos(THETA)
+    x3 = Y_lm_abs * np.sin(THETA) * np.cos(PHI)
+    y3 = Y_lm_abs * np.sin(THETA) * np.sin(PHI)
+    z3 = Y_lm_abs * np.cos(THETA)
 
     #############################
     scale = 5
@@ -58,14 +54,14 @@ def visualize(l,m):
     mlab.figure(1, bgcolor=(1, 1, 1), size=(1000, 900))
     mlab.clf()
 
-    mlab.mesh(x3*scale, y3*scale, z3*scale, scalars=Y_ml_abs, colormap='jet')
+    mlab.mesh(x3*scale, y3*scale, z3*scale, scalars=Y_lm_abs, colormap='jet')
     #mlab.text3d(-0.4, 0, 1.8, f'|Y{l}{m}|', scale=(0.2, 0.2, 0.2), color=(0,0,0))
     #mlab.colorbar(orientation='vertical')
 
-    mlab.mesh((x1*scale+dx31), y1*scale, z1*scale, scalars=Y_ml_real, colormap='jet')
+    mlab.mesh((x1*scale+dx31), y1*scale, z1*scale, scalars=Y_lm_real, colormap='jet')
     #mlab.text3d(-0.4+3.8, 0, 1.8, f'Re[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x2*scale+dx31+dx12, y2*scale, z2*scale, scalars=Y_ml_imag, colormap='jet')
+    mlab.mesh(x2*scale+dx31+dx12, y2*scale, z2*scale, scalars=Y_lm_imag, colormap='jet')
     #mlab.text3d(7.4, 0, 1.8, f'Im[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
 
@@ -87,8 +83,8 @@ def draw_coeff(coeff):
     [PHI, THETA] = np.meshgrid(phi, theta)
     
     R = PHI * 0
-    for l in range(len(coeff)-1):
-        for m in range(-l,l):
+    for l in range(len(coeff)):
+        for m in range(-l,l+1):
             R = R + coeff[l][m+l] * get_spherical_harmonic(l, m, PHI, THETA)
 
     visualize_final(R, THETA, PHI)
@@ -97,42 +93,40 @@ def draw_coeff(coeff):
 
 def get_spherical_harmonic(l, m, PHI, THETA):
 
-    a = np.sqrt(((2 * l + 1) / (4 * np.pi)) * (((math.factorial(l - m)) / (math.factorial(l + m)))))
+    a = np.sqrt(((2 * l + 1) / (4 * np.pi)) * (((math.factorial(l - abs(m))) / (math.factorial(l + abs(m))))))
 
     s = sym.Symbol('s')
 
     G = (s ** 2 - 1) ** l
 
-    H = (1 - s ** 2) ** (m / 2)
-    P_ml = ((-1) ** m / (math.factorial(l) * (2 ** l))) * H * sym.diff(G, s, m + l)
+    H = (1 - s ** 2) ** (abs(m) / 2)
+    P_lm = ((-1) ** abs(m) / (math.factorial(l) * (2 ** l))) * H * sym.diff(G, s, abs(m) + l)
 
-    P_ml = sym.lambdify(s, P_ml)
-    
+    P_lm = sym.lambdify(s, P_lm)
+    Y_lm = a * np.exp(1j * abs(m) * PHI) * P_lm(np.cos(THETA))
+    if m<0: Y_lm = (-1)**m * Y_lm.conj()
 
-    Y_ml = a * np.exp(1j * m * PHI) * P_ml(np.cos(THETA))
-
-    return Y_ml
+    return Y_lm
 
 def visualize_final(R, THETA, PHI):
     
-    R = np.where(np.isnan(R), 0, R)
 
-    Y_ml_real = R.real
-    Y_ml_imag = R.imag
-    Y_ml_abs = np.abs(R)
+    Y_lm_real = R.real
+    Y_lm_imag = R.imag
+    Y_lm_abs = np.abs(R)
 
 
-    x1 = abs(Y_ml_real) * np.sin(THETA) * np.cos(PHI)
-    y1 = abs(Y_ml_real) * np.sin(THETA) * np.sin(PHI)
-    z1 = abs(Y_ml_real) * np.cos(THETA)
+    x1 = abs(Y_lm_real) * np.sin(THETA) * np.cos(PHI)
+    y1 = abs(Y_lm_real) * np.sin(THETA) * np.sin(PHI)
+    z1 = abs(Y_lm_real) * np.cos(THETA)
 
-    x2 = abs(Y_ml_imag) * np.sin(THETA) * np.cos(PHI)
-    y2 = abs(Y_ml_imag) * np.sin(THETA) * np.sin(PHI)
-    z2 = abs(Y_ml_imag) * np.cos(THETA)
+    x2 = abs(Y_lm_imag) * np.sin(THETA) * np.cos(PHI)
+    y2 = abs(Y_lm_imag) * np.sin(THETA) * np.sin(PHI)
+    z2 = abs(Y_lm_imag) * np.cos(THETA)
 
-    x3 = Y_ml_abs * np.sin(THETA) * np.cos(PHI)
-    y3 = Y_ml_abs * np.sin(THETA) * np.sin(PHI)
-    z3 = Y_ml_abs * np.cos(THETA)
+    x3 = Y_lm_abs * np.sin(THETA) * np.cos(PHI)
+    y3 = Y_lm_abs * np.sin(THETA) * np.sin(PHI)
+    z3 = Y_lm_abs * np.cos(THETA)
 
     #############################
     scale = 5
@@ -146,14 +140,14 @@ def visualize_final(R, THETA, PHI):
     mlab.figure(1, bgcolor=(1, 1, 1), size=(1000, 900))
     mlab.clf()
 
-    mlab.mesh(x3*scale, y3*scale, z3*scale, scalars=Y_ml_abs, colormap='jet')
+    mlab.mesh(x3*scale, y3*scale, z3*scale, scalars=Y_lm_abs, colormap='jet')
     #mlab.text3d(-0.4, 0, 1.8, f'|Y{l}{m}|', scale=(0.2, 0.2, 0.2), color=(0,0,0))
     #mlab.colorbar(orientation='vertical')
 
-    mlab.mesh((x1*scale+dx31), y1*scale, z1*scale, scalars=Y_ml_real, colormap='jet')
+    mlab.mesh((x1*scale+dx31), y1*scale, z1*scale, scalars=Y_lm_real, colormap='jet')
     #mlab.text3d(-0.4+3.8, 0, 1.8, f'Re[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
-    mlab.mesh(x2*scale+dx31+dx12, y2*scale, z2*scale, scalars=Y_ml_imag, colormap='jet')
+    mlab.mesh(x2*scale+dx31+dx12, y2*scale, z2*scale, scalars=Y_lm_imag, colormap='jet')
     #mlab.text3d(7.4, 0, 1.8, f'Im[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
 
@@ -170,9 +164,9 @@ def visualize_final(R, THETA, PHI):
 if __name__ == "__main__":
     l = 3
     m = 1
-    coeff = [[0.37],
+    coeff = np.array([[0.37],
              [0.020, 0.052, 0.020],
              [0.068, 0.012, 0.012, 0.012, 0.068],
-             [0.0052, 0.0025, 0.0032, 0.0026, 0.0032, 0.0025, 0.0052]]
+             [0.0052, 0.0025, 0.0032, 0.0026, 0.0032, 0.0025, 0.0052]])
     #visualize(l,m)
     draw_coeff(coeff)
