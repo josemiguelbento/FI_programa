@@ -16,36 +16,25 @@ class MainWindow(QWidget):
         layout = QHBoxLayout(self)
         layout.addWidget(self.fig._widget)
         self.setLayout(layout)
-        self.setWindowTitle('Rosetta')
+        self.setWindowTitle('OBJ')
         self.show()
 
-def get_series_SH(coeff, l_max):
-    
-    n = 200
-    phi = np.linspace(0, 2 * np.pi, n)
-    theta = np.linspace(0, np.pi, n)
-    [PHI, THETA] = np.meshgrid(phi, theta)
-    
+def get_series_SH(coeff, l_max, PHI, THETA, basis_matrix):  
     f = PHI * 0
     for l in range(l_max+1):
         for m in range(-l,l+1):
-            f = f + coeff[l][m+l] * get_spherical_harmonic(l, m, PHI, THETA)
+            j = l**2 + l + m
+            #f = f + coeff[l][m+l] * get_spherical_harmonic(l, m, PHI, THETA).astype(complex).real
+            f = f + coeff[l][m+l] * basis_matrix[:,j]
 
     return f
 
-
-
 def get_spherical_harmonic(l, m, PHI, THETA):
-
     a = np.sqrt(((2 * l + 1) / (4 * np.pi)) * (((math.factorial(l - abs(m))) / (math.factorial(l + abs(m))))))
-
     s = sym.Symbol('s')
-
     G = (s ** 2 - 1) ** l
-
     H = (1 - s ** 2) ** (abs(m) / 2)
     P_lm = ((-1) ** abs(m) / (math.factorial(l) * (2 ** l))) * H * sym.diff(G, s, abs(m) + l)
-
     P_lm = sym.lambdify(s, P_lm)
     Y_lm = a * np.exp(1j * abs(m) * PHI) * P_lm(np.cos(THETA))
     if m<0: Y_lm = (-1)**m * Y_lm.conj()
@@ -58,7 +47,7 @@ def get_Vertices_Faces():
 
     VERTICES = OBJ.loc[OBJ['TYPE'] == 'v'][['X1', 'X2', 'X3']].values \
                 .tolist()
-    
+
     FACES = OBJ.loc[OBJ['TYPE'] == 'f'][['X1', 'X2', 'X3']].values
     FACES = FACES - 1
     FACES = FACES.astype(int)
@@ -66,6 +55,17 @@ def get_Vertices_Faces():
 
     return VERTICES, FACES
 
+def get_cart_vertices(r, phi, theta):
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+
+    VERTICES = np.zeros((len(x),3)) 
+    VERTICES[:,0] = x
+    VERTICES[:,1] = y
+    VERTICES[:,2] = z
+
+    return VERTICES
 
 def get_polar_vertices(VERTICES):
     N = len(VERTICES)
@@ -81,11 +81,11 @@ def get_polar_vertices(VERTICES):
     
 def get_basis_matrix(phi, theta, l_max):
     k = (l_max+1)**2
-    basis_matrix = np.zeros((len(phi),k))
+    basis_matrix = np.zeros((len(phi),k)) # dtype=np.complex128 onde ha np.zero
     for l in range(l_max+1):
         for m in range(-l,l+1):
             j = l**2 + l + m
-            basis_matrix[:,j] = get_spherical_harmonic(l, m, phi, theta).real
+            basis_matrix[:,j] = get_spherical_harmonic(l, m, phi, theta).astype(complex).real
 
     return basis_matrix
 
@@ -117,40 +117,41 @@ def vector2matrix (vector, l_max):
 #https://www.hindawi.com/journals/mpe/2015/582870/#introduction
 
 if __name__ == "__main__":
-    l_max = 10
+    l_max = 20
 
     print('getting vertices & faces....')
     VERTICES, FACES = get_Vertices_Faces()
+    print('vertices & faces acquired....')
 
     print('calculating r_Ver & theta_Ver & phi_Ver....')
     r_Ver, theta_Ver, phi_Ver = get_polar_vertices(VERTICES)
+    print('r_Ver & theta_Ver & phi_Ver calculated....')
 
     print('calculating Basis Matrix ....')
     Basis_Matrix = get_basis_matrix(phi_Ver, theta_Ver, l_max)
+    print('Basis Matrix calculated....')
 
     print('calculating Coeff_LS & Residual_error_LS....')
     coeff_LS, res_error_LS = get_coeff_least_square(Basis_Matrix, r_Ver)
+    print(f'Residual error: {np.linalg.norm(res_error_LS)}')
+    print('Coeff_LS & Residual_error_LS calculated....')
     
     print('tranforming vector coeff in matrix....')
     coeff_LS_matrix = vector2matrix(coeff_LS, l_max)
+    print('vector coeff in matrix calculated....')
 
     print('calculating series....')
-    f = get_series_SH(coeff_LS_matrix, l_max)
+    f = get_series_SH(coeff_LS_matrix, l_max, phi_Ver, theta_Ver, Basis_Matrix)
+    print('series calculated....')
 
+    print('calculating vertices_SH....')
+    VERT_SH = get_cart_vertices(f, phi_Ver, theta_Ver)
+    print('vertices_SH calculated....')
 
     app = vv.use()
     app.Create()
     main_w = MainWindow()
     main_w.resize(1200, 800)
-
-    n = 200
-    phi = np.linspace(0, 2 * np.pi, n)
-    theta = np.linspace(0, np.pi, n)
-    [PHI, THETA] = np.meshgrid(phi, theta)
-
-    x = f*np.sin(THETA) * np.cos(PHI)
-    y = f*np.sin(THETA) * np.sin(PHI)
-    z = f*np.cos(THETA)
 
     vv.figure(1) 
     vv.clf()
@@ -167,11 +168,10 @@ if __name__ == "__main__":
 
     a2 = vv.subplot(122) 
     vv.title(f"SH")
-    vv.surf(x,y,z)
+    vv.mesh(vertices=VERT_SH, faces=FACES, verticesPerFace=3)
     a2.bgcolor = 'black'
     a2.axis.showGrid = False
     a2.axis.visible = False
-    a2.light0.On()
 
     a2.camera = a1.camera
 
