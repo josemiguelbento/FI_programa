@@ -6,9 +6,11 @@ from matplotlib import cm, colors
 import numpy as np
 import sympy as sym
 import pandas as pd
+from scipy.spatial import ConvexHull
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout
 import visvis as vv
+
 class MainWindow(QWidget):
     def __init__(self, *args):
         QWidget.__init__(self, *args)
@@ -113,11 +115,66 @@ def vector2matrix (vector, l_max):
 
     return matrix
 
+def miu(V):
+
+
+    hull=ConvexHull(V)
+    vol=hull.volume
+    rho=2 #g/cm3
+    G=6.6742e-11
+    m=vol*rho*G
+
+
+    return m
+
+
+
+
+def potential(r,phi, theta, l_max, mu, coeff):
+
+    R_s=0.95*r
+    pot=0
+    for l in range(l_max + 1):
+        for m in range(-l, l + 1):
+            pot=pot+((R_s/r)**(m+1))*coeff[l][m]*get_spherical_harmonic(l,m,phi,theta).real
+
+
+    pot=-1*(mu/R_s)*pot
+
+    return pot
+
+def visualizar_potential(VERTICES,coeff_LS_matrix):
+
+    #   r=np.zeros(len(VERTICES))
+    #  for i in range(len(VERTICES)):
+    #      r[i]=np.sqrt(VERTICES[i][0] ** 2 + VERTICES[i][1] ** 2 + VERTICES[i][2] ** 2)
+    # print(max(r))
+
+    mu = miu(VERTICES)
+    r = 0.1
+    n = 10
+    phi = np.linspace(0, math.pi * 2, n)
+    theta = np.linspace(0, math.pi, n)
+    s = (n, n)
+    POT = np.zeros(s)
+    PHI, THETA = np.meshgrid(phi, theta)
+
+    for i in range(n):
+        for j in range(n):
+            POT[i, j] = potential(r, PHI[i, j], THETA[i, j], l_max, mu, coeff_LS_matrix)
+
+    plt.figure(1)
+    cp = plt.contourf(PHI, THETA, POT)
+    plt.colorbar(cp)
+    plt.show()
+
+
+    return
 
 #https://www.hindawi.com/journals/mpe/2015/582870/#introduction
 
 if __name__ == "__main__":
-    l_max = 20
+    l_max =20
 
     print('getting vertices & faces....')
     VERTICES, FACES = get_Vertices_Faces()
@@ -147,6 +204,10 @@ if __name__ == "__main__":
     print('calculating vertices_SH....')
     VERT_SH = get_cart_vertices(f, phi_Ver, theta_Ver)
     print('vertices_SH calculated....')
+
+    print('Printing colormap for potential....')
+    visualizar_potential(VERTICES, coeff_LS_matrix)
+    print('Print done....')
 
     app = vv.use()
     app.Create()
