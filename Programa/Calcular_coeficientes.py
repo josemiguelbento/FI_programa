@@ -151,7 +151,7 @@ def visualizar_potential(VERTICES,coeff_LS_matrix):
     # print(max(r))
 
     mu = miu(VERTICES)
-    r = 0.1
+    r = 0.4
     n = 10
     phi = np.linspace(0, math.pi * 2, n)
     theta = np.linspace(0, math.pi, n)
@@ -174,7 +174,7 @@ def visualizar_potential(VERTICES,coeff_LS_matrix):
 #https://www.hindawi.com/journals/mpe/2015/582870/#introduction
 
 if __name__ == "__main__":
-    l_max =20
+    l_max =10
 
     print('getting vertices & faces....')
     VERTICES, FACES = get_Vertices_Faces()
