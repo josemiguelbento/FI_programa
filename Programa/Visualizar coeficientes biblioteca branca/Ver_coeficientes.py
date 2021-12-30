@@ -120,53 +120,56 @@ def visualize_final(R, THETA, PHI):
     y1 = abs(Y_lm_real) * np.sin(THETA) * np.sin(PHI)
     z1 = abs(Y_lm_real) * np.cos(THETA)
 
-    x2 = abs(Y_lm_imag) * np.sin(THETA) * np.cos(PHI)
-    y2 = abs(Y_lm_imag) * np.sin(THETA) * np.sin(PHI)
-    z2 = abs(Y_lm_imag) * np.cos(THETA)
-
-    x3 = Y_lm_abs * np.sin(THETA) * np.cos(PHI)
-    y3 = Y_lm_abs * np.sin(THETA) * np.sin(PHI)
-    z3 = Y_lm_abs * np.cos(THETA)
 
     #############################
-    scale = 5
+    scale = 0.00001
 
-    dx31 = scale*x3.max() - scale*x1.min() + 1
-    
-    dx12 = scale*x1.max() - scale*x2.min() + 1
-    
     ##############################
 
     mlab.figure(1, bgcolor=(1, 1, 1), size=(1000, 900))
     mlab.clf()
 
-    mlab.mesh(x3*scale, y3*scale, z3*scale, scalars=Y_lm_abs, colormap='jet')
-    #mlab.text3d(-0.4, 0, 1.8, f'|Y{l}{m}|', scale=(0.2, 0.2, 0.2), color=(0,0,0))
-    #mlab.colorbar(orientation='vertical')
 
-    mlab.mesh((x1*scale+dx31), y1*scale, z1*scale, scalars=Y_lm_real, colormap='jet')
-    #mlab.text3d(-0.4+3.8, 0, 1.8, f'Re[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
-
-    mlab.mesh(x2*scale+dx31+dx12, y2*scale, z2*scale, scalars=Y_lm_imag, colormap='jet')
-    #mlab.text3d(7.4, 0, 1.8, f'Im[Y{l}{m}]', scale=(0.2, 0.2, 0.2), color=(0,0,0))
+    mlab.mesh(x1*scale, y1*scale, z1*scale, scalars=Y_lm_real, colormap='jet')
 
 
-    mlab.text3d(-0.2, 0, scale*z3.max()+1, 'Abs', scale=(0.2, 0.2, 0.2), color=(0,0,0))
-    mlab.text3d(-0.2+dx31, 0, scale*z3.max()+1, 'Re', scale=(0.2, 0.2, 0.2), color=(0,0,0))
-    mlab.text3d(-0.2+dx31+dx12, 0, scale*z3.max()+1, 'Im', scale=(0.2, 0.2, 0.2), color=(0,0,0))
+    #mlab.text3d(-0.2+dx31, 0, scale*z1.max()+1, 'Re', scale=(0.2, 0.2, 0.2), color=(0,0,0))
 
     
 
     mlab.view(-85,85,30)
     mlab.show()
 
+def ler_txt(path):
+    text_file = open(path, "r")
+    lines = text_file.readlines()
+    coeff = np.zeros((len(lines), len(lines)*2-1))
+    for l in range(len(lines)):
+        string = lines[l].replace('\n', '')
+        linha = string.split()
+        for m in range(len(linha)):
+            coeff[l][m] = float(linha[m])
+        
+        #coeff = []
+        #for item in string.split():
+        #    coeff[l].append(float(item))
+
+    return np.array(coeff)
 
 if __name__ == "__main__":
     l = 3
     m = 1
-    coeff = np.array([[0.37],
-             [0.020, 0.052, 0.020],
-             [0.068, 0.012, 0.012, 0.012, 0.068],
-             [0.0052, 0.0025, 0.0032, 0.0026, 0.0032, 0.0025, 0.0052]])
+    path = '../data/coeficientes.txt'
+    earth = 1
+    miu = 398600.4415
+    r = 6378.1363
+    r_orbit = 6500
     #visualize(l,m)
+    coeff = ler_txt(path)
+    print('coefficientes =')
+    print(coeff)
+    if earth==1:
+        for l in range(len(coeff)):
+            coeff[l] = -coeff[l]*miu*r**l
+            coeff[l] = coeff[l]*(r/r_orbit)**(l+1)
     draw_coeff(coeff)
