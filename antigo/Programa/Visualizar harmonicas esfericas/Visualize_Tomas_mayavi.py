@@ -128,6 +128,6 @@ def visualize(l,m):
 
 
 if __name__ == "__main__":
-    l = 7
-    m = 4
+    l = 2
+    m = 0
     visualize(l,m)
