@@ -6,6 +6,22 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, colors
 from mpl_toolkits.mplot3d import Axes3D
 from mayavi import mlab
+from mpl_toolkits.basemap import Basemap
+from tvtk.api import tvtk
+
+# Plot
+#################################################################################################################
+
+def matplot_mollweide(X, Y, Values, cmap):
+    fig=plt.figure(figsize=(10,10))
+    ax = plt.subplot(111, projection = 'mollweide')
+    ax.pcolormesh(X, Y, Potencial, cmap=cm.RdBu)
+    clrbr = cm.ScalarMappable(cmap=cm.RdBu)
+    clrbr.set_array(Potencial)
+    fig.colorbar(clrbr, orientation='horizontal')
+    ax.grid(color='k')
+
+#################################################################################################################
 
 def get_ass_leg(l, m, THETA): # egm96 norm for a (beacuase of coefficients with this norm)
     if m == 0: 
@@ -41,7 +57,7 @@ def get_pot(l, m, C, S, THETA, PHI, MU, R_T, r):
     for i in range(arr_size):
         U = U + (R_T / r)**l[i] * get_ass_leg(l[i], m[i], THETA) * (C[i] * np.cos(m[i] * PHI) + S[i] * np.sin(m[i]* PHI))
     U = U * MU / r
-    return U
+    return -U
 
 def get_cart(PHI, THETA, r):
     X = r * np.cos(THETA) * np.cos(PHI)
@@ -50,6 +66,20 @@ def get_cart(PHI, THETA, r):
 
     return X, Y, Z
 
+def get_undulation(THETA, PHI, MU, R_T):
+    lmax = 16
+    l, m, C, S = read_file('earth_egm96_to360.ascii.txt', lmax)
+    Potencial = -get_pot(l, m, C, S, THETA, PHI, MU, R_T, R_T)
+    zonal_ind = np.where(m == 0)
+    zonal_l = l[zonal_ind]
+    zonal_m = m[zonal_ind]
+    zonal_C = C[zonal_ind]
+    zonal_S = S[zonal_ind]
+    zonal_Potencial = -get_pot(zonal_l, zonal_m, zonal_C, zonal_S, THETA, PHI, MU, R_T, R_T)
+    T = Potencial - zonal_Potencial
+    N = R_T**2 * T / MU # [m]
+
+    return N
 
 
 # EARTH EGM96
@@ -80,20 +110,58 @@ if __name__ == "__main__":
     Potencial = get_pot(l, m, C, S, THETA, PHI, MU, R_T, r)
 
     # Potencial mollweide
-    fig=plt.figure(figsize=(10,10))
+    """fig=plt.figure(figsize=(10,10))
     ax = plt.subplot(111, projection = 'mollweide')
-    ax.pcolormesh(PHI, THETA, Potencial, cmap=cm.seismic)
-    clrbr = cm.ScalarMappable(cmap=cm.seismic)
+    ax.pcolormesh(PHI, THETA, Potencial, cmap=cm.RdBu)
+    ax.set_title(f'h = {(r-R_T)*1e-3} Km')
+    clrbr = cm.ScalarMappable(cmap=cm.RdBu)
     clrbr.set_array(Potencial)
-    fig.colorbar(clrbr, orientation='horizontal')
+    cbar = fig.colorbar(clrbr, orientation='horizontal')
+    cbar.set_label('Gravitational Potencial [Nm/kg]')
     ax.grid(color='k')
-    plt.show()
+    plt.show()"""
 
     # Potencial 3D
     """X, Y, Z = get_cart(PHI, THETA, r)
     norm = colors.Normalize()
     ax = plt.subplot(111, projection = '3d')
-    ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=cm.seismic(norm(Potencial)))
+    ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=cm.RdBu(norm(Potencial)))
+    plt.show()
+
+    # Potencial for 2 different r
+    r2 =  R_T + 105e3
+    Potencial2 = get_pot(l, m, C, S, THETA, PHI, MU, R_T, r2)
+
+    if Potencial.min() < Potencial2.min():
+        vmin = Potencial.min()
+    else:
+        vmin = Potencial2.min()
+
+    if Potencial.max() > Potencial2.max():
+        vmax = Potencial.max()
+    else:
+        vmax = Potencial2.max()
+
+    fig=plt.figure(figsize=(10,10))
+    ax = plt.subplot(111, projection = 'mollweide')
+    ax.pcolormesh(PHI, THETA, Potencial, cmap=cm.RdBu, vmin=vmin, vmax=vmax)
+    ax.set_title(f'h = {(r-R_T)*1e-3} Km')
+    clrbr = cm.ScalarMappable(cmap=cm.RdBu)
+    clrbr.set_array(np.linspace(vmin,vmax,200))
+    cbar = fig.colorbar(clrbr, orientation='horizontal')
+    cbar.set_label('Gravitational Potencial [Nm/kg]')
+    ax.grid(color='k')
+
+    fig=plt.figure(figsize=(10,10))
+    ax = plt.subplot(111, projection = 'mollweide')
+    ax.pcolormesh(PHI, THETA, Potencial2, cmap=cm.RdBu, vmin=vmin, vmax=vmax)
+    ax.set_title(f'h = {(r2-R_T)*1e-3} Km')
+    clrbr = cm.ScalarMappable(cmap=cm.RdBu)
+    clrbr.set_array(np.linspace(vmin,vmax,200))
+    cbar = fig.colorbar(clrbr, orientation='horizontal')
+    cbar.set_label('Gravitational Potencial [Nm/kg]')
+    ax.grid(color='k')
+
     plt.show()"""
 
     # Earth format 3D
@@ -105,12 +173,18 @@ if __name__ == "__main__":
 
     mlab.figure(1, bgcolor=(1, 1, 1), size=(1000, 900))
     mlab.clf()
-    mlab.mesh(X, Y, Z, scalars=f, colormap='jet')
+    mlab.mesh(X, Y, Z, scalars=f, colormap='seismic')
     mlab.view(-85,85,30)
     mlab.show()"""
 
     # Earth format mollweide
-    """fig=plt.figure(figsize=(10,10))
+    """arr_size = len(l)
+    f = 0
+    for i in range(arr_size):
+        f = f + get_ass_leg(l[i], m[i], THETA) * (C[i] * np.cos(m[i] * PHI) + S[i] * np.sin(m[i]* PHI))
+    X, Y, Z = get_cart(PHI, THETA, 150*f+1)
+    
+    fig=plt.figure(figsize=(10,10))
     ax = plt.subplot(111)
     ax.pcolormesh(PHI, THETA, f, cmap=cm.seismic)
     clrbr = cm.ScalarMappable(cmap=cm.seismic)
@@ -131,10 +205,14 @@ if __name__ == "__main__":
 
     fig=plt.figure(figsize=(10,10))
     ax = plt.subplot(111)
-    ax.pcolormesh(X, Y, Potencial, cmap=cm.seismic)
-    clrbr = cm.ScalarMappable(cmap=cm.seismic)
+    ax.pcolormesh(X, Y, Potencial, cmap=cm.RdBu)
+    ax.set_title(f'elevation angle = {0}')
+    ax.set_xlabel('X [Km]')
+    ax.set_ylabel('Y [Km]')
+    clrbr = cm.ScalarMappable(cmap=cm.RdBu)
     clrbr.set_array(Potencial)
-    fig.colorbar(clrbr, orientation='horizontal')
+    cbar = fig.colorbar(clrbr, orientation='horizontal')
+    cbar.set_label('Gravitational Potencial [Nm/kg]')
     ax.grid(color='k')
     plt.show()"""
 
@@ -149,10 +227,37 @@ if __name__ == "__main__":
 
     fig=plt.figure(figsize=(10,10))
     ax = plt.subplot(111)
-    ax.pcolormesh(X, Z, Potencial, cmap=cm.seismic)
-    clrbr = cm.ScalarMappable(cmap=cm.seismic)
+    ax.pcolormesh(X, Z, Potencial, cmap=cm.RdBu)
+    ax.set_title(f'azimuth angle = {0}')
+    ax.set_xlabel('X [Km]')
+    ax.set_ylabel('Y [Km]')
+    clrbr = cm.ScalarMappable(cmap=cm.RdBu)
     clrbr.set_array(Potencial)
-    fig.colorbar(clrbr, orientation='horizontal')
+    cbar = fig.colorbar(clrbr, orientation='horizontal')
+    cbar.set_label('Gravitational Potencial [Nm/kg]')
     ax.grid(color='k')
     plt.show()"""
+
+    # Undulation  [m]
+    """N = get_undulation(THETA, PHI, MU, R_T)
+
+    fig=plt.figure(figsize=(10,10))
+    ax = plt.subplot(111)
+    m = Basemap(projection='cyl',llcrnrlat=-90,urcrnrlat=90,\
+            llcrnrlon=-180,urcrnrlon=180,resolution='c')
+    m.drawcoastlines()
+    ax.pcolormesh(PHI*180/np.pi, THETA*180/np.pi, N, cmap=cm.jet)
+    clrbr = cm.ScalarMappable(cmap=cm.jet)
+    clrbr.set_array([-100, 80])
+    cbar = fig.colorbar(clrbr, orientation='horizontal')
+    cbar.set_label('Geoid height [m]')
+    ax.grid(color='k')
+    plt.show()"""
+    
+    """X, Y, Z = get_cart(PHI, THETA, 10000*N+R_T)
+
+    mlab.figure(1, bgcolor=(1, 1, 1), size=(1000, 900))
+    mlab.clf()
+    mlab.mesh(X, Y, Z, scalars=N, colormap='jet')
+    mlab.show()"""
 
