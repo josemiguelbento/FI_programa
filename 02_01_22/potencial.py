@@ -99,6 +99,7 @@ if __name__ == "__main__":
 
     # Read File
     l, m, C, S = read_file('earth_egm96_to360.ascii.txt', lmax)
+    #C[0] = 0
 
     # Define phi & theta
     n = 200
@@ -260,4 +261,28 @@ if __name__ == "__main__":
     mlab.clf()
     mlab.mesh(X, Y, Z, scalars=N, colormap='jet')
     mlab.show()"""
+
+    # Undulation (perfect sphere)
+    rm = 6371.0088e3
+    Pot = -get_pot(l, m, C, S, THETA, PHI, MU, rm, rm)
+    R = rm**2 * Pot / MU
+
+    fig=plt.figure(figsize=(10,10))
+    ax = plt.subplot(111)
+    m = Basemap(projection='cyl',llcrnrlat=-90,urcrnrlat=90,\
+            llcrnrlon=-180,urcrnrlon=180,resolution='c')
+    m.drawcoastlines()
+    ax.pcolormesh(PHI*180/np.pi, THETA*180/np.pi, R, cmap=cm.jet)
+    clrbr = cm.ScalarMappable(cmap=cm.jet)
+    clrbr.set_array(R*1e-3)
+    cbar = fig.colorbar(clrbr, orientation='horizontal')
+    cbar.set_label('Ellipsoid [Km]')
+    ax.grid(color='k')
+    plt.show()
+
+    X, Y, Z = get_cart(PHI, THETA, R)
+    mlab.figure(1, bgcolor=(1, 1, 1), size=(1000, 900))
+    mlab.clf()
+    mlab.mesh(X, Y, Z, scalars=R, colormap='jet')
+    mlab.show()
 
